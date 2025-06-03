@@ -7,7 +7,7 @@
  * Author URI: https://sonicverse.nl
  * License: GPL-2.0+
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain: disable-frontend-wpgraphql
+ * Text Domain: DFWPG
  * Domain Path: /languages
  * Requires at least: 5.0
  * Requires PHP: 7.0
@@ -19,13 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit; // Exit if accessed directly
 }
 
-// Define the plugin version
-define( 'DISABLE_FRONTEND_WPGRAPHQL_VERSION', '1.0.0' );
 
-// Define the plugin directory
-define( 'DISABLE_FRONTEND_WPGRAPHQL_DIR', plugin_dir_path( __FILE__ ) );
-
-// Define the plugin URL
-define( 'DISABLE_FRONTEND_WPGRAPHQL_URL', plugin_dir_url( __FILE__ ) );
 
 
