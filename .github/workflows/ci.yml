@@ -100,7 +100,7 @@ jobs:
         zip -r DFWPG-dev.zip DFWPG/
         
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: DFWPG-build-${{ github.sha }}
         path: build/DFWPG-dev.zip
