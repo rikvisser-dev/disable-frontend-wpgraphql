@@ -6,6 +6,7 @@ class settings
     public function __construct()
     {
         $this->DFWPG_settings = get_option('DFWPG_settings', array());
+        
     }
 
     /**
@@ -94,7 +95,7 @@ class settings
     }
 
     /**
-     * Register admin menu
+     * Register admin menu and settings
      */
     public function register_admin_menu()
     {
@@ -111,7 +112,7 @@ class settings
             __('Disable Frontend for WPGraphQL', 'DFWPG'),
             __('DFWPG Settings', 'DFWPG'),
             'manage_options',
-            'dfwpg-settings',
+            'DFWPG_settings', // This should match the page slug used in main.php
             array($this, 'settings_page')
         );
     }

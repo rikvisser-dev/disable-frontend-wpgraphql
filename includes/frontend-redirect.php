@@ -21,21 +21,44 @@ class frontend_disable_redirect
 
     public function redirect_non_graphql_requests()
     {
-
         // Don't redirect if we're in admin, doing AJAX, or if it's a cron job
         if (is_admin() || wp_doing_ajax() || wp_doing_cron()) {
             return;
         }
 
-        // Dont't redirect if the request is for the GraphQL endpoint
-        if (!defined('GRAPHQL_NAMESPACE') || !preg_match('/^\/' . GRAPHQL_NAMESPACE . '/', $_SERVER['REQUEST_URI'])) {
-            // If the request is not for the GraphQL endpoint, redirect to the specified URL
-            $this->frontend_redirect();
-        } else {
-            // If the request is for the GraphQL endpoint, do nothing
+        // Get the settings
+        $settings = get_option('DFWPG_settings', array());
+        $enable_frontend = isset($settings['enable_frontend']) ? (bool) $settings['enable_frontend'] : false;
+        
+        // If frontend is enabled, don't redirect
+        if ($enable_frontend) {
             return;
         }
 
+        // Check if this is a GraphQL request
+        $is_graphql_request = false;
+        
+        // Check for WPGraphQL endpoint
+        if (class_exists('WPGraphQL')) {
+            $graphql_endpoint = get_option('graphql_endpoint', 'graphql');
+            $request_uri = trim($_SERVER['REQUEST_URI'], '/');
+            if (strpos($request_uri, $graphql_endpoint) === 0) {
+                $is_graphql_request = true;
+            }
+        }
+        
+        // Also check for GraphQL in the request (POST with query parameter)
+        if (!$is_graphql_request && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            $input = file_get_contents('php://input');
+            if (strpos($input, 'query') !== false || strpos($input, 'mutation') !== false) {
+                $is_graphql_request = true;
+            }
+        }
+
+        // If this is not a GraphQL request, redirect
+        if (!$is_graphql_request) {
+            $this->frontend_redirect();
+        }
     }
 }
 
