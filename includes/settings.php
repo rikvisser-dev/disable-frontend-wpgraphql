@@ -14,8 +14,12 @@ class settings
      */
     public function settings_init()
     {
-        // Register settings
-        register_setting('DFWPG_settings_group', 'DFWPG_settings');
+        // Register settings with validation callback
+        register_setting(
+            'DFWPG_settings_group', 
+            'DFWPG_settings',
+            array($this, 'validate_settings')
+        );
 
         // Add settings section
         add_settings_section(
@@ -57,7 +61,7 @@ class settings
      */
     public function main_section_callback()
     {
-        echo '<p>' . __('Configure the settings for the Disable Frontend for WPGraphQL plugin.', 'DFWPG') . '</p>';
+        echo '<p>' . esc_html__('Configure the settings for the Disable Frontend for WPGraphQL plugin.', 'DFWPG') . '</p>';
     }
 
     /**
@@ -66,8 +70,11 @@ class settings
     public function redirect_url_callback()
     {
         $redirect_url = isset($this->DFWPG_settings['redirect_url']) ? esc_url($this->DFWPG_settings['redirect_url']) : '';
-        echo '<input type="text" id="DFWPG_redirect_url" name="DFWPG_settings[redirect_url]" value="' . $redirect_url . '" class="regular-text" />';
-        echo '<p class="description">' . __('Enter the URL to redirect non-GraphQL requests.', 'DFWPG') . '</p>';
+        printf(
+            '<input type="text" id="DFWPG_redirect_url" name="DFWPG_settings[redirect_url]" value="%s" class="regular-text" />',
+            esc_attr($redirect_url)
+        );
+        echo '<p class="description">' . esc_html__('Enter the URL to redirect non-GraphQL requests.', 'DFWPG') . '</p>';
     }
 
     /**
@@ -77,8 +84,8 @@ class settings
     {
         $enable_frontend = isset($this->DFWPG_settings['enable_frontend']) ? (bool) $this->DFWPG_settings['enable_frontend'] : false;
         echo '<input type="checkbox" id="DFWPG_enable_frontend" name="DFWPG_settings[enable_frontend]" value="1"' . checked($enable_frontend, true, false) . ' />';
-        echo '<label for="DFWPG_enable_frontend">' . __('Enable Frontend', 'DFWPG') . '</label>';
-        echo '<p class="description">' . __('Check this box to enable the frontend for non-GraphQL requests.', 'DFWPG') . '</p>';
+        echo '<label for="DFWPG_enable_frontend">' . esc_html__('Enable Frontend', 'DFWPG') . '</label>';
+        echo '<p class="description">' . esc_html__('Check this box to enable the frontend for non-GraphQL requests.', 'DFWPG') . '</p>';
     }
 
     /**
@@ -88,10 +95,10 @@ class settings
     {
         $redirect_status = isset($this->DFWPG_settings['redirect_status']) ? esc_attr($this->DFWPG_settings['redirect_status']) : '302';
         echo '<select id="DFWPG_redirect_status" name="DFWPG_settings[redirect_status]">';
-        echo '<option value="301"' . selected($redirect_status, '301', false) . '>301 Moved Permanently</option>';
-        echo '<option value="302"' . selected($redirect_status, '302', false) . '>302 Found</option>';
+        echo '<option value="301"' . selected($redirect_status, '301', false) . '>' . esc_html__('301 Moved Permanently', 'DFWPG') . '</option>';
+        echo '<option value="302"' . selected($redirect_status, '302', false) . '>' . esc_html__('302 Found', 'DFWPG') . '</option>';
         echo '</select>';
-        echo '<p class="description">' . __('Select the HTTP status code for the redirect.', 'DFWPG') . '</p>';
+        echo '<p class="description">' . esc_html__('Select the HTTP status code for the redirect.', 'DFWPG') . '</p>';
     }
 
     /**
@@ -134,6 +141,51 @@ class settings
             </form>
         </div>
         <?php
+    }
+
+    /**
+     * Validate and sanitize settings
+     *
+     * @param array $input Raw input data from the form.
+     * @return array Validated and sanitized settings.
+     */
+    public function validate_settings($input)
+    {
+        $validated = array();
+        
+        // Validate enable_frontend checkbox
+        $validated['enable_frontend'] = isset($input['enable_frontend']) ? (bool) $input['enable_frontend'] : false;
+        
+        // Validate and sanitize redirect_url
+        if (isset($input['redirect_url'])) {
+            $url = wp_unslash($input['redirect_url']);
+            $validated['redirect_url'] = esc_url_raw($url);
+            
+            // Additional validation - must be a valid URL
+            if (!filter_var($validated['redirect_url'], FILTER_VALIDATE_URL)) {
+                add_settings_error(
+                    'DFWPG_settings',
+                    'invalid_url',
+                    esc_html__('Please enter a valid URL for the redirect.', 'DFWPG'),
+                    'error'
+                );
+                // Use existing value if validation fails
+                $validated['redirect_url'] = isset($this->DFWPG_settings['redirect_url']) ? 
+                    $this->DFWPG_settings['redirect_url'] : home_url();
+            }
+        } else {
+            $validated['redirect_url'] = home_url();
+        }
+        
+        // Validate redirect_status
+        if (isset($input['redirect_status'])) {
+            $status = absint(wp_unslash($input['redirect_status']));
+            $validated['redirect_status'] = in_array($status, array(301, 302), true) ? $status : 302;
+        } else {
+            $validated['redirect_status'] = 302;
+        }
+        
+        return $validated;
     }
 
 }

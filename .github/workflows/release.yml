@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.0'
+        tools: composer
+        
+    - name: Get version from tag or input
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Update version in plugin file
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        sed -i "s/Version: .*/Version: $VERSION/" FGWPG.php
+        sed -i "s/define('DFWPG_VERSION', '.*');/define('DFWPG_VERSION', '$VERSION');/" FGWPG.php
+        
+    - name: Update version in translation files
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        sed -i "s/Project-Id-Version: .*/Project-Id-Version: Disable Frontend for WPGraphQL $VERSION\\\\n/" languages/DFWPG.pot
+        sed -i "s/Project-Id-Version: .*/Project-Id-Version: Disable Frontend for WPGraphQL $VERSION\\\\n/" languages/DFWPG-en_US.po
+        
+    - name: Prepare release directory
+      run: |
+        mkdir -p release/DFWPG
+        
+    - name: Copy plugin files
+      run: |
+        # Copy main plugin files
+        cp FGWPG.php release/DFWPG/
+        cp LICENSE release/DFWPG/
+        cp readme.txt release/DFWPG/
+        
+        # Copy includes directory
+        cp -r includes/ release/DFWPG/includes/
+        
+        # Copy languages directory
+        cp -r languages/ release/DFWPG/languages/
+        
+    - name: Remove development files
+      run: |
+        # Remove any development files that shouldn't be in release
+        find release/DFWPG -name ".DS_Store" -delete
+        find release/DFWPG -name "*.log" -delete
+        find release/DFWPG -name ".git*" -delete
+        
+    - name: Create release zip
+      run: |
+        cd release
+        zip -r DFWPG.zip DFWPG/
+        
+    - name: Verify zip contents
+      run: |
+        cd release
+        unzip -l DFWPG.zip
+        
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+        echo "# Disable Frontend for WPGraphQL v$VERSION" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "## What's New" >> $GITHUB_OUTPUT
+        echo "- Plugin release v$VERSION" >> $GITHUB_OUTPUT
+        echo "- WordPress GraphQL frontend disabling functionality" >> $GITHUB_OUTPUT
+        echo "- Configurable redirect settings" >> $GITHUB_OUTPUT
+        echo "- Admin settings panel" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "## Installation" >> $GITHUB_OUTPUT
+        echo "1. Download the DFWPG.zip file" >> $GITHUB_OUTPUT
+        echo "2. Upload to your WordPress site via Plugins > Add New > Upload Plugin" >> $GITHUB_OUTPUT
+        echo "3. Activate the plugin" >> $GITHUB_OUTPUT
+        echo "4. Configure settings under Settings > DFWPG Settings" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "## Requirements" >> $GITHUB_OUTPUT
+        echo "- WordPress 5.0 or higher" >> $GITHUB_OUTPUT
+        echo "- PHP 7.0 or higher" >> $GITHUB_OUTPUT
+        echo "- WPGraphQL plugin (recommended)" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', steps.version.outputs.version) || github.ref_name }}
+        name: ${{ format('Disable Frontend for WPGraphQL v{0}', steps.version.outputs.version) }}
+        body: ${{ steps.release_notes.outputs.release_notes }}
+        files: |
+          release/DFWPG.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: DFWPG-${{ steps.version.outputs.version }}
+        path: release/DFWPG.zip
+        retention-days: 30

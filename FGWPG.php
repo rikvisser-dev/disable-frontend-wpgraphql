@@ -27,11 +27,16 @@ define('DFWPG_VERSION', '1.0.0');
 // Define the plugin path
 define('DFWPG_PATH', plugin_dir_path(__FILE__));
 
+// Define domain path
+define('DFWPG_DOMAIN_PATH', dirname(plugin_basename(__FILE__)) . '/languages');
+
+
 // Register main class
 require_once DFWPG_PATH . 'includes/main.php';
 
-// Initialize the main class with the plugin file path
-$DFWPG_main = new main(__FILE__);
+// Initialize the main class
+$DFWPG_main = new main();
+
 
 
 // Activation hook
