@@ -30,6 +30,9 @@ define('DFWPG_PATH', plugin_dir_path(__FILE__));
 // Register main class
 require_once DFWPG_PATH . 'includes/main.php';
 
+// Initialize the main class with the plugin file path
+$DFWPG_main = new main(__FILE__);
+
 
 // Activation hook
 register_activation_hook(__FILE__, 'DFWPG_activate');

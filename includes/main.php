@@ -2,11 +2,20 @@
 
 class main
 {
-    public function __construct()
+    private $plugin_file;
+    
+    public function __construct($plugin_file = '')
     {
+        $this->plugin_file = $plugin_file;
         add_action('init', array($this, 'init'));
-        add_action('admin_init', array($this, 'register_settings'));
-        add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'add_setting_link'));
+        
+        // Initialize settings early
+        $this->register_settings();
+        
+        // Only add the settings link if we have the plugin file path
+        if (!empty($this->plugin_file)) {
+            add_filter('plugin_action_links_' . plugin_basename($this->plugin_file), array($this, 'add_settings_link'));
+        }
     }
 
     /**
@@ -20,20 +29,27 @@ class main
 
     public function register_settings()
     {
-        // Include settings class
-        require_once plugin_dir_path(__FILE__) . 'includes/settings.php';
+        // Include settings class only once
+        static $settings_loaded = false;
+        if (!$settings_loaded) {
+            require_once plugin_dir_path(__FILE__) . 'settings.php';
+            $settings_loaded = true;
+        }
+        
+        // Instantiate and initialize settings
+        $settings = new settings();
+        $settings->register_admin_menu();
+        
+        // Include and initialize frontend redirect functionality
+        require_once plugin_dir_path(__FILE__) . 'frontend-redirect.php';
+        new frontend_disable_redirect();
     }
-
-    public function add_setting_link()
+    
+    public function add_settings_link($links)
     {
         $settings_link = '<a href="' . admin_url('options-general.php?page=DFWPG_settings') . '">' . __('Settings', 'DFWPG') . '</a>';
-        $actions = array(
-            'settings' => $settings_link,
-        );
-        return $actions;
+        array_unshift($links, $settings_link);
+        return $links;
     }
 }
-
-// Initialize the main class
-$DFWPG_main = new main();
 
