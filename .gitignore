@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+*.zip
+DFWPG-*.zip
+
+# Development files
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# WordPress specific
+wp-config.php
+.htaccess
+
+# PHP
+*.phar
+vendor/
+
+# Node.js (if used for build tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Composer
+composer.lock
+vendor/
+
+# Translation working files
+*.po~
+*.pot~
+
+# Backup files
+*.bak
+*.backup
