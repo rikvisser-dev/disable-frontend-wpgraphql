@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2']
+        wordpress-version: ['5.9', '6.0', '6.1', '6.2', '6.3']
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up PHP ${{ matrix.php-version }}
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        tools: composer
+        coverage: none
+        
+    - name: Validate plugin files
+      run: |
+        # Check if main plugin file exists
+        if [ ! -f "FGWPG.php" ]; then
+          echo "Main plugin file FGWPG.php not found!"
+          exit 1
+        fi
+        
+        # Check plugin structure
+        if [ ! -d "includes" ]; then
+          echo "Includes directory not found!"
+          exit 1
+        fi
+        
+        if [ ! -d "languages" ]; then
+          echo "Languages directory not found!"
+          exit 1
+        fi
+        
+    - name: PHP Syntax Check
+      run: |
+        find . -name "*.php" -exec php -l {} \;
+        
+    - name: Check WordPress Coding Standards (if available)
+      run: |
+        if command -v phpcs &> /dev/null; then
+          phpcs --standard=WordPress --extensions=php --ignore=vendor/ .
+        else
+          echo "PHPCS not available, skipping coding standards check"
+        fi
+        
+    - name: Verify translation files
+      run: |
+        # Check if translation files exist
+        if [ ! -f "languages/DFWPG.pot" ]; then
+          echo "POT file not found!"
+          exit 1
+        fi
+        
+        if [ ! -f "languages/DFWPG-en_US.po" ]; then
+          echo "English PO file not found!"
+          exit 1
+        fi
+        
+        if [ ! -f "languages/DFWPG-en_US.mo" ]; then
+          echo "English MO file not found!"
+          exit 1
+        fi
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Create build artifact
+      run: |
+        mkdir -p build/DFWPG
+        
+        # Copy all necessary files
+        cp FGWPG.php build/DFWPG/
+        cp LICENSE build/DFWPG/
+        cp readme.txt build/DFWPG/
+        cp -r includes/ build/DFWPG/includes/
+        cp -r languages/ build/DFWPG/languages/
+        
+        # Create zip
+        cd build
+        zip -r DFWPG-dev.zip DFWPG/
+        
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: DFWPG-build-${{ github.sha }}
+        path: build/DFWPG-dev.zip
+        retention-days: 7

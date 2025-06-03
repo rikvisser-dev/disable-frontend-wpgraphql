@@ -15,22 +15,28 @@ class main
     public function init()
     {
         // Load plugin text domain
-        load_plugin_textdomain('DFWPG', false, dirname(plugin_basename(__FILE__)) . '/languages');
+        load_plugin_textdomain('DFWPG', false, DFWPG_DOMAIN_PATH);
     }
 
     public function register_settings()
     {
         // Include settings class
-        require_once plugin_dir_path(__FILE__) . 'includes/settings.php';
+        require_once plugin_dir_path(__FILE__) . 'settings.php';
+        
+        // Instantiate and initialize settings
+        $settings = new settings();
+        $settings->register_admin_menu();
+        
+        // Include and initialize frontend redirect functionality
+        require_once plugin_dir_path(__FILE__) . 'frontend-redirect.php';
+        new frontend_disable_redirect();
     }
 
-    public function add_setting_link()
+    public function add_setting_link($links)
     {
-        $settings_link = '<a href="' . admin_url('options-general.php?page=DFWPG_settings') . '">' . __('Settings', 'DFWPG') . '</a>';
-        $actions = array(
-            'settings' => $settings_link,
-        );
-        return $actions;
+        $settings_link = '<a href="' . esc_url(admin_url('options-general.php?page=DFWPG_settings')) . '">' . esc_html__('Settings', 'DFWPG') . '</a>';
+        array_unshift($links, $settings_link);
+        return $links;
     }
 }
 
