@@ -38,6 +38,7 @@ require_once DFWPG_PATH . 'includes/main.php';
 $DFWPG_main = new main();
 
 
+
 // Activation hook
 register_activation_hook(__FILE__, 'DFWPG_activate');
 function DFWPG_activate()
